@@ -2,19 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <title>Student Dashboard | GateMate</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Student Dashboard - Gate Pass</title>
+
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
 
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
         * { margin: 0; padding: 0; box-sizing: border-box; }
 
         body {
             font-family: 'Inter', sans-serif;
-            background: #0f0f23;
+            background: linear-gradient(135deg, #0f0f23, #141433);
             min-height: 100vh;
-            overflow-x: hidden;
+            color: white;
         }
 
         .container {
@@ -23,12 +27,23 @@
             padding: 40px 20px;
         }
 
+        /* ================= FLASH ================= */
+        .flash {
+            padding: 14px 18px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            font-weight: 600;
+        }
+        .flash.success { background: rgba(76,175,80,.2); color:#81c784; }
+        .flash.info { background: rgba(33,150,243,.2); color:#64b5f6; }
+        .flash.danger { background: rgba(244,67,54,.2); color:#ef5350; }
+
         /* ================= HEADER ================= */
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            margin-bottom: 40px;
+            margin-bottom: 35px;
             flex-wrap: wrap;
             gap: 20px;
         }
@@ -40,8 +55,8 @@
         }
 
         .avatar {
-            width: 58px;
-            height: 58px;
+            width: 60px;
+            height: 60px;
             border-radius: 50%;
             background: linear-gradient(135deg,#667eea,#764ba2);
             display: flex;
@@ -49,26 +64,29 @@
             justify-content: center;
             font-size: 22px;
             font-weight: 700;
-            color: white;
         }
 
         .welcome-text h1 {
-            color: white;
-            font-size: 28px;
+            font-size: 26px;
         }
 
         .welcome-text p {
-            color: rgba(255,255,255,0.6);
+            opacity: .6;
             font-size: 14px;
         }
 
         .logout-btn {
-            color: white;
-            text-decoration: none;
+            background: rgba(255,255,255,.12);
             padding: 12px 26px;
-            border-radius: 12px;
-            background: rgba(255,255,255,0.12);
+            border-radius: 14px;
+            text-decoration: none;
+            color: white;
             font-weight: 600;
+            transition: .3s;
+        }
+
+        .logout-btn:hover {
+            background: rgba(255,255,255,.22);
         }
 
         /* ================= GRID ================= */
@@ -79,60 +97,68 @@
             margin-bottom: 30px;
         }
 
+        @media(max-width:900px){
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+
         .card {
-            background: rgba(255,255,255,0.06);
+            background: rgba(255,255,255,.07);
             border-radius: 22px;
             padding: 32px;
+            transition: transform .3s ease, box-shadow .3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 14px 40px rgba(0,0,0,.4);
         }
 
         .card-header {
             display: flex;
             align-items: center;
-            gap: 12px;
-            margin-bottom: 24px;
+            gap: 14px;
+            margin-bottom: 22px;
         }
 
         .card-icon {
-            width: 44px;
-            height: 44px;
-            border-radius: 12px;
+            width: 46px;
+            height: 46px;
+            border-radius: 14px;
             background: linear-gradient(135deg,#667eea,#764ba2);
             display: flex;
             align-items: center;
             justify-content: center;
-            font-size: 22px;
+            font-size: 20px;
         }
 
         .card-header h3 {
-            color: white;
             font-size: 22px;
         }
 
         /* ================= FORM ================= */
         .form-group {
-            margin-bottom: 20px;
+            margin-bottom: 18px;
         }
 
-        .form-group label {
-            color: rgba(255,255,255,0.9);
-            font-weight: 600;
+        label {
             font-size: 14px;
+            font-weight: 600;
             margin-bottom: 8px;
             display: block;
+            opacity: .9;
         }
 
-        .form-group input,
-        .form-group textarea {
+        input, textarea {
             width: 100%;
             padding: 14px 16px;
             border-radius: 12px;
             border: none;
-            background: rgba(255,255,255,0.1);
+            background: rgba(255,255,255,.12);
             color: white;
             font-size: 14px;
         }
 
-        .form-group textarea {
+        textarea {
             min-height: 110px;
             resize: vertical;
         }
@@ -140,24 +166,28 @@
         .submit-btn {
             width: 100%;
             padding: 15px;
+            border: none;
+            border-radius: 14px;
             font-size: 15px;
             font-weight: 700;
-            border: none;
-            border-radius: 12px;
             cursor: pointer;
             background: linear-gradient(135deg,#667eea,#764ba2);
             color: white;
+            transition: .3s;
         }
 
-        /* ================= OTP ================= */
+        .submit-btn:hover {
+            opacity: .9;
+        }
+
         .otp-notice {
-            background: rgba(76,175,80,0.18);
-            border: 1px solid rgba(76,175,80,0.4);
+            background: rgba(76,175,80,.18);
+            border: 1px solid rgba(76,175,80,.4);
             padding: 14px 16px;
             border-radius: 12px;
-            margin-bottom: 18px;
-            color: #81c784;
+            margin-bottom: 16px;
             font-weight: 600;
+            color: #81c784;
         }
 
         /* ================= STATS ================= */
@@ -168,24 +198,23 @@
         }
 
         .stat-card {
-            background: rgba(255,255,255,0.07);
+            background: rgba(255,255,255,.08);
             border-radius: 16px;
             padding: 20px;
             text-align: center;
         }
 
         .stat-value {
-            font-size: 30px;
+            font-size: 32px;
             font-weight: 700;
-            color: white;
         }
 
         .stat-label {
             font-size: 13px;
-            color: rgba(255,255,255,0.6);
+            opacity: .6;
         }
 
-        /* ================= HISTORY ================= */
+        /* ================= TABLE ================= */
         table {
             width: 100%;
             border-collapse: collapse;
@@ -194,13 +223,14 @@
         th, td {
             padding: 14px;
             font-size: 13px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-            color: rgba(255,255,255,0.85);
+            border-bottom: 1px solid rgba(255,255,255,.12);
+            opacity: .9;
         }
 
         th {
             text-transform: uppercase;
-            opacity: 0.7;
+            font-size: 12px;
+            opacity: .6;
         }
 
         .status-badge {
@@ -210,9 +240,9 @@
             font-weight: 700;
         }
 
-        .status-pending { background: rgba(255,193,7,0.25); color: #ffc107; }
-        .status-approved { background: rgba(76,175,80,0.25); color: #81c784; }
-        .status-rejected { background: rgba(244,67,54,0.25); color: #ef5350; }
+        .status-pending { background: rgba(255,193,7,.25); color:#ffc107; }
+        .status-approved { background: rgba(76,175,80,.25); color:#81c784; }
+        .status-rejected { background: rgba(244,67,54,.25); color:#ef5350; }
 
         .qr-img {
             width: 90px;
@@ -221,8 +251,10 @@
             border-radius: 8px;
         }
 
-        @media(max-width:900px){
-            .dashboard-grid { grid-template-columns: 1fr; }
+        .empty {
+            text-align: center;
+            opacity: .6;
+            padding: 20px;
         }
     </style>
 </head>
@@ -230,56 +262,62 @@
 <body>
 <div class="container">
 
+    <!-- FLASH -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="flash {{ category }}">{{ message }}</div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
     <!-- HEADER -->
     <div class="header">
         <div class="user-info">
             <div class="avatar">{{ student_name[0].upper() }}</div>
             <div class="welcome-text">
                 <h1>Welcome, {{ student_name }}</h1>
-                <p>Manage your gate pass requests</p>
+                <p>Gate Pass Management Dashboard</p>
             </div>
         </div>
-        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+        <a href="{{ url_for('logout') }}" class="logout-btn">
+            <i class="fa-solid fa-right-from-bracket"></i> Logout
+        </a>
     </div>
 
     <!-- GRID -->
     <div class="dashboard-grid">
 
-        <!-- REQUEST FORM -->
+        <!-- REQUEST -->
         <div class="card">
             <div class="card-header">
-                <div class="card-icon">🎫</div>
+                <div class="card-icon"><i class="fa-solid fa-ticket"></i></div>
                 <h3>Request Gate Pass</h3>
             </div>
 
-            <form method="POST" action="{{ url_for('student') }}">
+            <form method="POST">
                 {% if not otp_required %}
                     <div class="form-group">
-                        <label>Reason for Leave</label>
+                        <label>Reason</label>
                         <textarea name="reason" required></textarea>
                     </div>
-
                     <div class="form-group">
                         <label>Out Date</label>
                         <input type="date" name="out_date" required>
                     </div>
-
                     <div class="form-group">
                         <label>Out Time</label>
                         <input type="time" name="out_time" required>
                     </div>
-
                     <button class="submit-btn">SEND OTP</button>
                 {% else %}
                     <div class="otp-notice">
                         OTP sent to your parent's registered mobile number
                     </div>
-
                     <div class="form-group">
                         <label>Enter OTP</label>
                         <input type="text" name="otp" maxlength="6" required>
                     </div>
-
                     <button class="submit-btn">VERIFY & SUBMIT</button>
                 {% endif %}
             </form>
@@ -288,7 +326,7 @@
         <!-- STATS -->
         <div class="card">
             <div class="card-header">
-                <div class="card-icon">📊</div>
+                <div class="card-icon"><i class="fa-solid fa-chart-simple"></i></div>
                 <h3>Statistics</h3>
             </div>
 
@@ -316,7 +354,7 @@
     <!-- HISTORY -->
     <div class="card">
         <div class="card-header">
-            <div class="card-icon">📋</div>
+            <div class="card-icon"><i class="fa-solid fa-clock-rotate-left"></i></div>
             <h3>Request History</h3>
         </div>
 
@@ -347,16 +385,14 @@
                     <td>
                         {% if r.qr_code_data %}
                             <img class="qr-img" src="data:image/png;base64,{{ r.qr_code_data }}">
-                        {% else %}
-                            —
-                        {% endif %}
+                        {% else %}—{% endif %}
                     </td>
                 </tr>
             {% endfor %}
             </tbody>
         </table>
         {% else %}
-            <p style="text-align:center;opacity:.6">No requests yet</p>
+            <div class="empty">No gate pass requests yet</div>
         {% endif %}
     </div>
 
