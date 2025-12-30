@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Student Dashboard - Gate Pass</title>
+
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #0f0f23;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: auto;
+            padding: 40px 20px;
+        }
+
+        /* ================= HEADER ================= */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 40px;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 18px;
+        }
+
+        .avatar {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .welcome-text h1 {
+            color: white;
+            font-size: 28px;
+        }
+
+        .welcome-text p {
+            color: rgba(255,255,255,0.6);
+            font-size: 14px;
+        }
+
+        .logout-btn {
+            color: white;
+            text-decoration: none;
+            padding: 12px 26px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.12);
+            font-weight: 600;
+        }
+
+        /* ================= GRID ================= */
+        .dashboard-grid {
+            display: grid;
+            grid-template-columns: 1fr 1.4fr;
+            gap: 28px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.06);
+            border-radius: 22px;
+            padding: 32px;
+        }
+
+        .card-header {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 24px;
+        }
+
+        .card-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .card-header h3 {
+            color: white;
+            font-size: 22px;
+        }
+
+        /* ================= FORM ================= */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            color: rgba(255,255,255,0.9);
+            font-weight: 600;
+            font-size: 14px;
+            margin-bottom: 8px;
+            display: block;
+        }
+
+        .form-group input,
+        .form-group textarea {
+            width: 100%;
+            padding: 14px 16px;
+            border-radius: 12px;
+            border: none;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+        }
+
+        .form-group textarea {
+            min-height: 110px;
+            resize: vertical;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            font-size: 15px;
+            font-weight: 700;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            background: linear-gradient(135deg,#667eea,#764ba2);
+            color: white;
+        }
+
+        /* ================= OTP ================= */
+        .otp-notice {
+            background: rgba(76,175,80,0.18);
+            border: 1px solid rgba(76,175,80,0.4);
+            padding: 14px 16px;
+            border-radius: 12px;
+            margin-bottom: 18px;
+            color: #81c784;
+            font-weight: 600;
+        }
+
+        /* ================= STATS ================= */
+        .stats-row {
+            display: grid;
+            grid-template-columns: repeat(3,1fr);
+            gap: 16px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.07);
+            border-radius: 16px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 30px;
+            font-weight: 700;
+            color: white;
+        }
+
+        .stat-label {
+            font-size: 13px;
+            color: rgba(255,255,255,0.6);
+        }
+
+        /* ================= HISTORY ================= */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            padding: 14px;
+            font-size: 13px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            color: rgba(255,255,255,0.85);
+        }
+
+        th {
+            text-transform: uppercase;
+            opacity: 0.7;
+        }
+
+        .status-badge {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 700;
+        }
+
+        .status-pending { background: rgba(255,193,7,0.25); color: #ffc107; }
+        .status-approved { background: rgba(76,175,80,0.25); color: #81c784; }
+        .status-rejected { background: rgba(244,67,54,0.25); color: #ef5350; }
+
+        .qr-img {
+            width: 90px;
+            background: white;
+            padding: 4px;
+            border-radius: 8px;
+        }
+
+        @media(max-width:900px){
+            .dashboard-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+
+<body>
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header">
+        <div class="user-info">
+            <div class="avatar">{{ student_name[0].upper() }}</div>
+            <div class="welcome-text">
+                <h1>Welcome, {{ student_name }}</h1>
+                <p>Manage your gate pass requests</p>
+            </div>
+        </div>
+        <a href="{{ url_for('logout') }}" class="logout-btn">Logout</a>
+    </div>
+
+    <!-- GRID -->
+    <div class="dashboard-grid">
+
+        <!-- REQUEST FORM -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">🎫</div>
+                <h3>Request Gate Pass</h3>
+            </div>
+
+            <form method="POST" action="{{ url_for('student') }}">
+                {% if not otp_required %}
+                    <div class="form-group">
+                        <label>Reason for Leave</label>
+                        <textarea name="reason" required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Out Date</label>
+                        <input type="date" name="out_date" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label>Out Time</label>
+                        <input type="time" name="out_time" required>
+                    </div>
+
+                    <button class="submit-btn">SEND OTP</button>
+                {% else %}
+                    <div class="otp-notice">
+                        OTP sent to your parent's registered mobile number
+                    </div>
+
+                    <div class="form-group">
+                        <label>Enter OTP</label>
+                        <input type="text" name="otp" maxlength="6" required>
+                    </div>
+
+                    <button class="submit-btn">VERIFY & SUBMIT</button>
+                {% endif %}
+            </form>
+        </div>
+
+        <!-- STATS -->
+        <div class="card">
+            <div class="card-header">
+                <div class="card-icon">📊</div>
+                <h3>Statistics</h3>
+            </div>
+
+            <div class="stats-row">
+                <div class="stat-card">
+                    <div class="stat-value">{{ requests_list|length }}</div>
+                    <div class="stat-label">Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        {{ requests_list|selectattr('status','equalto','Pending')|list|length }}
+                    </div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">
+                        {{ requests_list|selectattr('status','equalto','Approved')|list|length }}
+                    </div>
+                    <div class="stat-label">Approved</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="card">
+        <div class="card-header">
+            <div class="card-icon">📋</div>
+            <h3>Request History</h3>
+        </div>
+
+        {% if requests_list %}
+        <table>
+            <thead>
+                <tr>
+                    <th>#</th>
+                    <th>Reason</th>
+                    <th>Date</th>
+                    <th>Time</th>
+                    <th>Status</th>
+                    <th>QR</th>
+                </tr>
+            </thead>
+            <tbody>
+            {% for r in requests_list %}
+                <tr>
+                    <td>{{ loop.index }}</td>
+                    <td>{{ r.reason }}</td>
+                    <td>{{ r.out_date }}</td>
+                    <td>{{ r.out_time }}</td>
+                    <td>
+                        <span class="status-badge status-{{ r.status.lower() }}">
+                            {{ r.status }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if r.qr_code_data %}
+                            <img class="qr-img" src="data:image/png;base64,{{ r.qr_code_data }}">
+                        {% else %}
+                            —
+                        {% endif %}
+                    </td>
+                </tr>
+            {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+            <p style="text-align:center;opacity:.6">No requests yet</p>
+        {% endif %}
+    </div>
+
+</div>
+</body>
+</html>
