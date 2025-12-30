@@ -323,21 +323,43 @@ def update_request(id):
 
 @app.route("/verify-qr/<token>")
 def verify_qr(token):
-    req = GatePassRequest.query.filter_by(qr_token=token).first()
+    try:
+        req = GatePassRequest.query.filter_by(qr_token=token).first()
 
-    if not req:
-        return render_template("qr_result.html", status="invalid")
+        # ❌ Invalid token
+        if not req:
+            return render_template("qr_result.html", status="invalid")
 
-    if req.qr_used:
-        return render_template("qr_result.html", status="used")
+        # ⚠️ Already used
+        if req.qr_used:
+            return render_template("qr_result.html", status="used")
 
-    if datetime.now(timezone.utc) > req.qr_expires_at:
-        return render_template("qr_result.html", status="expired")
+        # ❌ Missing expiry
+        if not req.qr_expires_at:
+            return render_template("qr_result.html", status="expired")
 
-    req.qr_used = True
-    db.session.commit()
+        expires_at = req.qr_expires_at
 
-    return render_template("qr_result.html", status="valid")
+        # 🔥 Fix timezone issue
+        if expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+        now = datetime.now(timezone.utc)
+
+        # ⛔ Expired
+        if now > expires_at:
+            return render_template("qr_result.html", status="expired")
+
+        # ✅ VALID QR
+        req.qr_used = True
+        db.session.commit()
+
+        return render_template("qr_result.html", status="valid")
+
+    except Exception as e:
+        print("❌ QR VERIFY ERROR:", e)
+        return "Internal Server Error", 500
+
 
 
 @app.route("/logout")
@@ -352,3 +374,4 @@ def logout():
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port)
+
