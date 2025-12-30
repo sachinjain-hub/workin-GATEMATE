@@ -1,131 +1,444 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <title>GATEMATE - Login</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+import os
+import random
+import io
+import base64
+from uuid import uuid4
+from datetime import datetime, timedelta, timezone
 
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            font-family: 'Poppins', sans-serif;
+from flask import (
+    Flask, render_template, redirect,
+    url_for, flash, request, session
+)
+from flask_wtf import FlaskForm
+from wtforms import StringField, PasswordField, SubmitField
+from wtforms.validators import DataRequired, Email
+
+from flask_sqlalchemy import SQLAlchemy
+from flask_migrate import Migrate
+import bcrypt
+import qrcode
+from twilio.rest import Client
+
+# =====================================================
+# APP CONFIG
+# =====================================================
+app = Flask(__name__)
+
+# ---------- SECRET & SESSION ----------
+app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev")
+app.config["PERMANENT_SESSION_LIFETIME"] = timedelta(minutes=30)
+app.config["SESSION_COOKIE_SAMESITE"] = "None"
+app.config["SESSION_COOKIE_SECURE"] = True
+
+# =====================================================
+# DATABASE CONFIG (POSTGRES)
+# =====================================================
+DATABASE_URL = os.environ.get("DATABASE_URL")
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set")
+
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://")
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+
+db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+
+# =====================================================
+# TWILIO CONFIG
+# =====================================================
+TWILIO_ACCOUNT_SID = os.environ.get("TWILIO_ACCOUNT_SID")
+TWILIO_AUTH_TOKEN = os.environ.get("TWILIO_AUTH_TOKEN")
+TWILIO_FROM_NUMBER = os.environ.get("TWILIO_FROM_NUMBER")
+
+twilio_client = None
+if all([TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, TWILIO_FROM_NUMBER]):
+    twilio_client = Client(TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+else:
+    print("⚠️ Twilio disabled (env variables missing)")
+
+# =====================================================
+# DATABASE MODELS
+# =====================================================
+class User(db.Model):
+    __tablename__ = "users"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=False)
+    password = db.Column(db.String(255), nullable=False)
+    parents_phone = db.Column(db.String(20), nullable=False)
+    role = db.Column(db.String(20), default="student")
+
+
+class GatePassRequest(db.Model):
+    __tablename__ = "gate_pass_requests"
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    student_name = db.Column(db.String(120))
+    reason = db.Column(db.Text)
+    out_date = db.Column(db.String(20))
+    out_time = db.Column(db.String(20))
+    status = db.Column(db.String(20), default="Pending")
+    created_at = db.Column(
+    db.DateTime(timezone=True),
+    default=lambda: datetime.now(timezone.utc)
+    )
+
+    qr_token = db.Column(db.String(100), unique=True)
+    qr_expires_at = db.Column(db.DateTime)
+    qr_used = db.Column(db.Boolean, default=False)
+
+# =====================================================
+# FORMS
+# =====================================================
+class RegisterForm(FlaskForm):
+    name = StringField("Name", validators=[DataRequired()])
+    email = StringField("Email", validators=[DataRequired(), Email()])
+    password = PasswordField("Password", validators=[DataRequired()])
+    parents_phone = StringField("Parent Phone", validators=[DataRequired()])
+    submit = SubmitField("Register")
+
+# =====================================================
+# HELPERS
+# =====================================================
+def format_phone(phone):
+    phone = phone.strip()
+    if phone.startswith("0"):
+        phone = phone[1:]
+    if not phone.startswith("+"):
+        phone = "+91" + phone
+    return phone
+
+
+def send_sms(phone, message):
+    if not twilio_client:
+        print("⚠️ SMS skipped (Twilio disabled)")
+        return
+    try:
+        print("📨 Sending SMS to:", phone)
+        twilio_client.messages.create(
+            body=message,
+            from_=TWILIO_FROM_NUMBER,
+            to=phone
+        )
+        print("✅ SMS SENT")
+    except Exception as e:
+        print("❌ Twilio Error:", e)
+
+@app.route("/verify_otp", methods=["GET", "POST"])
+def verify_otp():
+    if request.method == "POST":
+        entered_otp = request.form["otp"]
+
+        if datetime.now(timezone.utc) > session.get("otp_expiry"):
+            flash("OTP expired", "danger")
+            return redirect(url_for("student"))
+
+        if entered_otp != str(session.get("otp")):
+            flash("Invalid OTP", "danger")
+            return redirect(url_for("verify_otp"))
+
+        data = session.get("pending")
+
+        req = GatePassRequest(
+            student_name=session["student_name"],
+            reason=data["reason"],
+            out_date=data["out_date"],
+            out_time=data["out_time"]
+        )
+        db.session.add(req)
+        db.session.commit()
+
+        session.pop("otp")
+        session.pop("otp_expiry")
+        session.pop("pending")
+
+        flash("Gate pass submitted successfully", "success")
+        return redirect(url_for("student"))
+
+    return render_template("otp.verify.html")
+
+def generate_qr_code(data):
+    qr = qrcode.QRCode(box_size=8, border=3)
+    qr.add_data(data)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return base64.b64encode(buf.getvalue()).decode()
+
+# =====================================================
+# ROUTES
+# =====================================================
+@app.route("/")
+def index():
+    return render_template("index.html")
+
+
+@app.route("/register", methods=["GET", "POST"])
+def register():
+    form = RegisterForm()
+    if form.validate_on_submit():
+        phone = format_phone(form.parents_phone.data)
+
+        hashed = bcrypt.hashpw(
+            form.password.data.encode(),
+            bcrypt.gensalt()
+        ).decode()
+
+        user = User(
+            name=form.name.data,
+            email=form.email.data,
+            password=hashed,
+            parents_phone=phone
+        )
+        db.session.add(user)
+        db.session.commit()
+
+        flash("Registration successful", "success")
+        return redirect(url_for("login"))
+
+    return render_template("register.html", form=form)
+
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        user = User.query.filter_by(email=request.form["email"]).first()
+        if user and bcrypt.checkpw(
+            request.form["password"].encode(),
+            user.password.encode()
+        ):
+            session.permanent = True
+            session["user_id"] = user.id
+            session["role"] = user.role
+            session["name"] = user.name
+
+            return redirect(
+                url_for("hod_dashboard") if user.role == "hod" else url_for("student")
+            )
+
+        flash("Invalid credentials", "danger")
+
+    return render_template("login.html")
+
+@app.route("/student", methods=["GET", "POST"])
+def student():
+    if "user_id" not in session:
+        return redirect(url_for("login"))
+
+    user = User.query.get(session["user_id"])
+
+    # ================= OTP VERIFY =================
+    if request.method == "POST" and session.get("otp_phase"):
+        if datetime.now(timezone.utc) > session.get("otp_expiry"):
+            flash("OTP expired", "danger")
+            session.clear()
+            return redirect(url_for("student"))
+
+        if request.form.get("otp") != str(session.get("otp")):
+            flash("Invalid OTP", "danger")
+            return redirect(url_for("student"))
+
+        req = GatePassRequest(
+            student_id=user.id,
+            student_name=user.name,
+            **session["pending"]
+        )
+        db.session.add(req)
+        db.session.commit()
+
+        session.pop("otp_phase", None)
+        session.pop("otp", None)
+        session.pop("pending", None)
+        session.pop("otp_expiry", None)
+
+        flash("Gate pass submitted successfully", "success")
+        return redirect(url_for("student"))
+
+    # ================= SEND OTP =================
+    if request.method == "POST":
+        otp = random.randint(100000, 999999)
+
+        session["otp"] = otp
+        session["otp_phase"] = True
+        session["otp_expiry"] = datetime.now(timezone.utc) + timedelta(minutes=5)
+        session["pending"] = {
+            "reason": request.form["reason"],
+            "out_date": request.form["out_date"],
+            "out_time": request.form["out_time"]
         }
 
-        /* Clear, High-Quality Background */
-        body {
-            background: url("/static/iist_image2.jpeg") no-repeat center center;
-            background-size: cover;
-            height: 100vh;
-            color: white;
-        }
+        send_sms(user.parents_phone, f"OTP for gate pass is {otp}")
+        flash("OTP sent to parent's mobile number", "info")
+        return redirect(url_for("student"))
 
-        /* Transparent Navbar */
-        .navbar {
-            width: 100%;
-            padding: 15px 40px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            position: fixed;
-            top: 0;
-            background: rgba(0,0,0,0.4);
-        }
+    # ================= FETCH REQUESTS =================
+    gate_requests = GatePassRequest.query.filter_by(
+        student_id=user.id
+    ).order_by(GatePassRequest.created_at.desc()).all()
 
-        .navbar a {
-            margin-left: 20px;
-            font-size: 16px;
-            color: white;
-            text-decoration: none;
-            font-weight: 400;
-        }
+    now = datetime.now(timezone.utc)
+    requests_list = []
 
-        .navbar a:hover {
-            text-decoration: underline;
-        }
+    for r in gate_requests:
+        qr_code_data = None
 
-        /* Glassmorphism Login Box */
-        .container {
-            width: 380px;
-            background: rgba(108, 20, 20, 0.15);
-            backdrop-filter: blur(10px);
-            padding: 30px;
-            border-radius: 20px;
-            margin: 120px auto;
-            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
-        }
+        expires_at = r.qr_expires_at
+        if expires_at and expires_at.tzinfo is None:
+            expires_at = expires_at.replace(tzinfo=timezone.utc)
 
-        .container h2 {
-            text-align: center;
-            margin-bottom: 25px;
-            color: white;
-        }
+        if (
+            r.status == "Approved"
+            and r.qr_token
+            and not r.qr_used
+            and expires_at
+            and expires_at > now
+        ):
+            verify_url = url_for("verify_qr", token=r.qr_token, _external=True)
+            qr_code_data = generate_qr_code(verify_url)
 
-        input {
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border-radius: 10px;
-            border: 1px solid #ddd;
-            outline: none;
-        }
+        requests_list.append({
+            "id": r.id,
+            "reason": r.reason,
+            "out_date": r.out_date,
+            "out_time": r.out_time,
+            "status": r.status,
+            "created_at": r.created_at,
+            "qr_code_data": qr_code_data,
+            "qr_expires_at": expires_at
+        })
 
-        button {
-            width: 100%;
-            padding: 12px;
-            background: #2438FF;
-            color: white;
-            border: none;
-            font-size: 17px;
-            border-radius: 10px;
-            cursor: pointer;
-            margin-top: 15px;
-        }
+    return render_template(
+        "student.html",
+        student_name=user.name,
+        requests_list=requests_list,
+        otp_required=session.get("otp_phase", False)
+    )
 
-        button:hover {
-            background: #1b2ed8;
-        }
 
-        /* Footer */
-        footer {
-            text-align: center;
-            margin-top: 40px;
-            font-size: 14px;
-            color: #fff;
-        }
-    </style>
-</head>
+@app.route("/hod")
+def hod_dashboard():
+    if session.get("role") != "hod":
+        return redirect(url_for("login"))
 
-<body>
+    requests = GatePassRequest.query.order_by(
+        GatePassRequest.created_at.desc()
+    ).all()
 
-    <!-- Navbar -->
-    <div class="navbar">
-        <h2>GATEMATE</h2>
-        <div>
-            <a href="#">Home</a>
-            <a href="#">About College</a>
-            <a href="#">Contact</a>
-            <a href="#">Help</a>
-        </div>
-    </div>
+    return render_template("hod.html", requests=requests)
 
-    <!-- Glass Login Form -->
-    <div class="container">
-        <h2>Login</h2>
 
-        <form action="/login" method="POST">
-            <label>Email:</label>
-            <input type="email" name="email" required>
+@app.route("/hod/update/<int:id>", methods=["POST"])
+def update_request(id):
+    if session.get("role") != "hod":
+        return redirect(url_for("login"))
 
-            <label>Password:</label>
-            <input type="password" name="password" required>
+    req = GatePassRequest.query.get_or_404(id)
+    action = request.form.get("action")
 
-            <button type="submit">Login</button>
-        </form>
-    </div>
+    # 👇 DIRECTLY USE User MODEL (no import needed)
+    student = User.query.get(req.student_id)
 
-    <footer>
-        © 2025 GATEMATE | All Rights Reserved
-    </footer>
+    if action == "Approved":
+        req.status = "Approved"
+        req.qr_token = uuid4().hex
+        req.qr_expires_at = datetime.now(timezone.utc) + timedelta(minutes=20)
+        req.qr_used = False
 
-</body>
-</html>
+        
+
+        if student:
+            send_sms(
+                student.parents_phone,
+                f"Gate pass of {student.name} has been APPROVED"
+            )
+
+    elif action == "Rejected":
+        req.status = "Rejected"
+
+    db.session.commit()
+    return redirect(url_for("hod_dashboard"))
+
+@app.route("/verify-qr/<token>")
+def verify_qr(token):
+    req = GatePassRequest.query.filter_by(qr_token=token).first()
+
+    # ❌ Invalid QR
+    if not req:
+        return render_template(
+            "qr_result.html",
+            status="invalid",
+            msg="This QR code is not valid.",
+            gate_req=None
+        )
+
+    # ⚠️ Already used
+    if req.qr_used:
+        return render_template(
+            "qr_result.html",
+            status="used",
+            msg="This gate pass has already been used.",
+            gate_req=req
+        )
+
+    now = datetime.now(timezone.utc)
+
+    expires_at = req.qr_expires_at
+    if expires_at and expires_at.tzinfo is None:
+        expires_at = expires_at.replace(tzinfo=timezone.utc)
+
+    # ⛔ Expired
+    if not expires_at or now > expires_at:
+        return render_template(
+            "qr_result.html",
+            status="expired",
+            msg="Gate pass validity time (20 minutes) has expired.",
+            gate_req=req
+        )
+
+    # ✅ VALID → mark as used
+    req.qr_used = True
+    db.session.commit()
+
+    return render_template(
+        "qr_result.html",
+        status="valid",
+        msg="Gate pass is valid and verified successfully.",
+        gate_req=req
+    )
+
+
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect(url_for("login"))
+
+# =====================================================
+# MAIN
+# =====================================================
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
