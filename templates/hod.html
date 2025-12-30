@@ -2,125 +2,445 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>HOD Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            background: #f4f6f8;
-            padding: 30px;
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
         }
 
-        h2 {
-            margin-bottom: 10px;
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        /* Header Section */
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header h1 {
+            color: #2c3e50;
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header h1 i {
+            color: #667eea;
+        }
+
+        .user-info {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+        }
+
+        .info-item {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .info-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .info-value {
+            font-size: 16px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .logout-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 20px;
+            background: #e74c3c;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.3s ease;
+            font-size: 14px;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+
+        /* Main Content */
+        .content {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .content-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 25px 30px;
+            color: white;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .content-header h2 {
+            font-size: 22px;
+            margin: 0;
+        }
+
+        .content-header i {
+            font-size: 24px;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            padding: 20px 30px;
+            background: #f8f9fa;
+            border-bottom: 1px solid #e9ecef;
+        }
+
+        .stat-card {
+            text-align: center;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: #667eea;
+        }
+
+        .stat-label {
+            font-size: 12px;
+            color: #7f8c8d;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-top: 5px;
+        }
+
+        /* Table Styles */
+        .table-wrapper {
+            overflow-x: auto;
+            padding: 30px;
         }
 
         table {
             width: 100%;
             border-collapse: collapse;
-            background: white;
         }
 
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            font-size: 14px;
-            text-align: center;
+        thead {
+            background: #f8f9fa;
         }
 
         th {
-            background: #2c3e50;
-            color: white;
+            padding: 16px;
+            text-align: left;
+            font-size: 13px;
+            font-weight: 700;
+            color: #2c3e50;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 2px solid #667eea;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #e9ecef;
+            font-size: 14px;
+            color: #2c3e50;
+        }
+
+        tbody tr {
+            transition: all 0.2s ease;
+        }
+
+        tbody tr:hover {
+            background: #f8f9fa;
+        }
+
+        tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-pending {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .status-approved {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .status-rejected {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        /* Action Buttons */
+        .action-cell {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .btn {
-            padding: 6px 12px;
+            padding: 8px 14px;
             border: none;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 13px;
-            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
         }
 
-        .approve {
+        .btn-approve {
             background: #2ecc71;
             color: white;
         }
 
-        .reject {
+        .btn-approve:hover {
+            background: #27ae60;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+        }
+
+        .btn-reject {
             background: #e74c3c;
             color: white;
         }
 
-        .logout {
-            display: inline-block;
-            margin-top: 20px;
-            text-decoration: none;
-            color: #2c3e50;
-            font-weight: bold;
+        .btn-reject:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(231, 76, 60, 0.3);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 60px 30px;
+            color: #7f8c8d;
+        }
+
+        .empty-state i {
+            font-size: 48px;
+            color: #bdc3c7;
+            margin-bottom: 15px;
+            display: block;
+        }
+
+        .empty-state p {
+            font-size: 16px;
+            margin: 0;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .header {
+                flex-direction: column;
+                text-align: center;
+            }
+
+            .user-info {
+                justify-content: center;
+                width: 100%;
+            }
+
+            .header h1 {
+                justify-content: center;
+            }
+
+            th, td {
+                padding: 12px 8px;
+                font-size: 12px;
+            }
+
+            .btn {
+                padding: 6px 10px;
+                font-size: 11px;
+            }
+
+            .action-cell {
+                flex-direction: column;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+                gap: 10px;
+            }
+        }
+
+        form {
+            display: inline;
         }
     </style>
 </head>
 <body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <div>
+                <h1><i class="fas fa-graduation-cap"></i> HOD Dashboard</h1>
+            </div>
+            <div class="user-info">
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-user"></i> Faculty Name</span>
+                    <span class="info-value">{{ session.name }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-building"></i> Branch</span>
+                    <span class="info-value">{{ session.branch }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label"><i class="fas fa-calendar"></i> Year</span>
+                    <span class="info-value">{{ session.year }}</span>
+                </div>
+            </div>
+            <a href="{{ url_for('logout') }}" class="logout-btn">
+                <i class="fas fa-sign-out-alt"></i> Logout
+            </a>
+        </div>
 
-<h2>HOD Dashboard</h2>
-<p>Welcome, HOD</p>
+        <!-- Main Content -->
+        <div class="content">
+            <div class="content-header">
+                <i class="fas fa-ticket-alt"></i>
+                <h2>Gate Pass Requests</h2>
+            </div>
 
-<h3>All Gate Pass Requests</h3>
-
-{% if requests %}
-<table>
-    <thead>
-    <tr>
-        <th>#</th>
-        <th>Student Name</th>
-        <th>Reason</th>
-        <th>Out Date</th>
-        <th>Out Time</th>
-        <th>Status</th>
-        <th>Requested At</th>
-        <th>Action</th>
-    </tr>
-    </thead>
-
-    <tbody>
-    {% for r in requests %}
-    <tr>
-        <td>{{ loop.index }}</td>
-        <td>{{ r.student_name }}</td>
-        <td>{{ r.reason }}</td>
-        <td>{{ r.out_date }}</td>
-        <td>{{ r.out_time }}</td>
-        <td>{{ r.status }}</td>
-        <td>{{ r.created_at }}</td>
-        <td>
-            {% if r.status == 'Pending' %}
-            <form method="POST"
-                  action="{{ url_for('update_request', id=r.id) }}"
-                  style="display:inline;">
-                <button class="btn approve" name="action" value="Approved">
-                    Approve
-                </button>
-            </form>
-
-            <form method="POST"
-                  action="{{ url_for('update_request', id=r.id) }}"
-                  style="display:inline;">
-                <button class="btn reject" name="action" value="Rejected">
-                    Reject
-                </button>
-            </form>
-            {% else %}
-                {{ r.status }}
+            <!-- Stats Section -->
+            {% if requests %}
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-value">{{ requests|length }}</div>
+                    <div class="stat-label">Total Requests</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ requests|selectattr('status', 'equalto', 'Pending')|list|length }}</div>
+                    <div class="stat-label">Pending</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ requests|selectattr('status', 'equalto', 'Approved')|list|length }}</div>
+                    <div class="stat-label">Approved</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value">{{ requests|selectattr('status', 'equalto', 'Rejected')|list|length }}</div>
+                    <div class="stat-label">Rejected</div>
+                </div>
+            </div>
             {% endif %}
-        </td>
-    </tr>
-    {% endfor %}
-    </tbody>
-</table>
-{% else %}
-<p>No requests yet.</p>
-{% endif %}
 
-<a href="{{ url_for('logout') }}" class="logout">Logout</a>
-
+            <!-- Table Section -->
+            <div class="table-wrapper">
+                {% if requests %}
+                <table>
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Student Name</th>
+                            <th>Reason</th>
+                            <th>Out Date</th>
+                            <th>Out Time</th>
+                            <th>Status</th>
+                            <th>Requested At</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for r in requests %}
+                        <tr>
+                            <td><strong>#{{ loop.index }}</strong></td>
+                            <td>{{ r.student_name }}</td>
+                            <td>{{ r.reason }}</td>
+                            <td>{{ r.out_date }}</td>
+                            <td>{{ r.out_time }}</td>
+                            <td>
+                                <span class="status-badge status-{{ r.status.lower() }}">
+                                    {{ r.status }}
+                                </span>
+                            </td>
+                            <td>{{ r.created_at.strftime('%d %b %Y, %H:%M') }}</td>
+                            <td>
+                                <div class="action-cell">
+                                    {% if r.status == 'Pending' %}
+                                        <form method="POST" action="{{ url_for('update_request', id=r.id) }}">
+                                            <button class="btn btn-approve" name="action" value="Approved" type="submit">
+                                                <i class="fas fa-check"></i> Approve
+                                            </button>
+                                        </form>
+                                        <form method="POST" action="{{ url_for('update_request', id=r.id) }}">
+                                            <button class="btn btn-reject" name="action" value="Rejected" type="submit">
+                                                <i class="fas fa-times"></i> Reject
+                                            </button>
+                                        </form>
+                                    {% else %}
+                                        <span class="status-badge status-{{ r.status.lower() }}">
+                                            {{ r.status }}
+                                        </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+                {% else %}
+                <div class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>No gate pass requests assigned to you at the moment.</p>
+                </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
 </body>
 </html>
